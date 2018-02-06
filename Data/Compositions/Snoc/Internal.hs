@@ -29,7 +29,12 @@ newtype Flip a = Flip { unflip :: a } deriving (Functor, Eq)
 
 instance Monoid a => Monoid (Flip a) where
   mempty = Flip mempty
+#if !MIN_VERSION_base(4,11,0)
   mappend (Flip a) (Flip b) = Flip (mappend b a)
+#else
+instance Semigroup a => Semigroup (Flip a) where
+  (<>) (Flip a) (Flip b) = Flip (b <> a)
+#endif
 
 -- | A /compositions list/ or /composition tree/ is a list data type
 -- where the elements are monoids, and the 'mconcat' of any contiguous sublist can be
@@ -59,7 +64,12 @@ newtype Compositions a = C { unC :: C.Compositions (Flip a) } deriving (Eq)
 
 instance Monoid a => Monoid (Compositions a) where
   mempty = C mempty
+#if !MIN_VERSION_base(4,11,0)
   mappend (C a) (C b) = C $ b <> a
+#else
+instance Semigroup a => Semigroup (Compositions a) where
+  (<>) (C a) (C b) = C $ b <> a
+#endif
 
 instance Foldable Compositions where
   foldMap f (C x) = foldMap (f . unflip) . reverse $ toList x

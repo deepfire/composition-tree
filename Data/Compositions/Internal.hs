@@ -85,6 +85,7 @@ data Node a = Node { nodeSize :: Int
 
 instance (Monoid a) => Monoid (Compositions a) where
   mempty  = Tree []
+#if !MIN_VERSION_base(4,11,0)
   mappend (Tree a) (Tree b) = Tree (go (reverse a) b)
     where
       go [] ys  = ys
@@ -94,6 +95,18 @@ instance (Monoid a) => Monoid (Compositions a) where
            LT -> go xs (x : y : ys)
            GT -> let Just (l, r) = cx in go (r : l : xs) (y : ys)
            EQ -> go (Node (sx + sy) (Just (x, y)) (vx <> vy)  : xs) ys
+#else
+instance (Semigroup a) => Semigroup (Compositions a) where
+  (<>) (Tree a) (Tree b) = Tree (go (reverse a) b)
+    where
+      go [] ys  = ys
+      go ( x : xs) [] = go xs [x]
+      go ( x@(Node sx cx vx) : xs) ( y@(Node sy _ vy) : ys)
+       = case compare sx sy of
+           LT -> go xs (x : y : ys)
+           GT -> let Just (l, r) = cx in go (r : l : xs) (y : ys)
+           EQ -> go (Node (sx + sy) (Just (x, y)) (vx <> vy)  : xs) ys
+#endif
 
 instance Foldable Compositions where
   foldMap f = foldMap f . concatMap helper . unwrap
